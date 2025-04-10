@@ -43,11 +43,25 @@
             font-weight: bold;
             color: #3a0ca3;
         }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #4361ee;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
     <h1>支付成功!</h1>
     <p>感谢您的捐赠！您的账号正在激活中...</p>
+    <div class="loader"></div>
     <p>系统将在 <span id="countdown" class="countdown">5</span> 秒后自动返回主页完成注册</p>
     <a href="https://zlib.kaxsx.top/" id="return-link">立即返回</a>
 
@@ -57,23 +71,47 @@
             const urlParams = new URLSearchParams(window.location.search);
             const outTradeNo = urlParams.get('out_trade_no') || '';
             
-            // 修改返回链接，添加支付成功和订单号参数
-            const returnLink = document.getElementById('return-link');
-            returnLink.href = `https://zlib.kaxsx.top/?payment_success=true&out_trade_no=${outTradeNo}`;
-            
-            // 倒计时自动跳转
-            let count = 5;
-            const countdownElement = document.getElementById('countdown');
-            
-            const timer = setInterval(function() {
-                count--;
-                countdownElement.textContent = count;
-                
-                if (count <= 0) {
-                    clearInterval(timer);
-                    window.location.href = returnLink.href;
+            // 确保有订单号参数
+            if (!outTradeNo) {
+                console.error('Missing out_trade_no parameter!');
+                // 尝试从URL路径中提取
+                const pathParts = window.location.pathname.split('/');
+                const lastPart = pathParts[pathParts.length - 1];
+                if (lastPart && lastPart.length > 8) {
+                    console.log('Extracted possible order number from URL path:', lastPart);
+                    returnWithOrderNumber(lastPart);
+                } else {
+                    // 无法获取订单号，仍然返回但带上错误标记
+                    returnWithOrderNumber('unknown_order', true);
                 }
-            }, 1000);
+            } else {
+                // 正常情况，有订单号
+                returnWithOrderNumber(outTradeNo);
+            }
+            
+            function returnWithOrderNumber(orderNumber, isError = false) {
+                // 修改返回链接，添加支付成功和订单号参数
+                const returnLink = document.getElementById('return-link');
+                let returnUrl = `https://zlib.kaxsx.top/?payment_success=true&out_trade_no=${orderNumber}`;
+                if (isError) {
+                    returnUrl += '&error=missing_order_number';
+                }
+                returnLink.href = returnUrl;
+                
+                // 倒计时自动跳转
+                let count = 5;
+                const countdownElement = document.getElementById('countdown');
+                
+                const timer = setInterval(function() {
+                    count--;
+                    countdownElement.textContent = count;
+                    
+                    if (count <= 0) {
+                        clearInterval(timer);
+                        window.location.href = returnLink.href;
+                    }
+                }, 1000);
+            }
         });
     </script>
 </body>
